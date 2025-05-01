@@ -163,8 +163,8 @@ async function main() {
       console.log(
         `[${abstractClient.account.address}]: Completed with hash: ${airdropHash}`
       );
-      process.exit(0);
     }
+    process.exit(0);
   } catch (err) {
     console.error('Error in main execution:', err);
   }
