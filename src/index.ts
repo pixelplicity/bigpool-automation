@@ -131,16 +131,19 @@ async function main() {
       console.log(
         `[${abstractClient.account.address}]: Starting claim and split`
       );
+      const balanceBefore = await getBigBalance(abstractClient.account.address);
       await claimRewards(abstractClient);
-      const balance = await getBigBalance(abstractClient.account.address);
+      const balanceAfter = await getBigBalance(abstractClient.account.address);
 
-      const toTreasury = (balance * 45n) / 100n;
-      const toFee = (balance * 5n) / 100n;
-      const toReinvest = balance - toTreasury - toFee;
+      const balanceToSplit = balanceAfter - balanceBefore;
+
+      const toTreasury = (balanceToSplit * 45n) / 100n;
+      const toFee = (balanceToSplit * 5n) / 100n;
+      const toReinvest = balanceToSplit - toTreasury - toFee;
 
       console.log(
         `[${abstractClient.account.address}]: Splitting ${formatUnits(
-          balance,
+          balanceToSplit,
           18
         )} BIG: treasury=${formatUnits(toTreasury, 18)}, fee=${formatUnits(
           toFee,
