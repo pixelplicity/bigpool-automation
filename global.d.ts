@@ -9,5 +9,6 @@ declare namespace NodeJS {
     TEAM_ADDRESS: string;
     HOLDERS_ADDRESS: string;
     AIRDROP_CONTRACT_ADDRESS: string;
+    BIGPOOL_CONTRACT_ADDRESS: string;
   }
 }

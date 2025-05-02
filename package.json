@@ -5,7 +5,11 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "snapshot": "node dist/snapshot.js",
+    "airdropCSV": "ts-node dist/airdropCSV.js",
+    "dev": "ts-node src/index.ts",
+    "dev:snapshot": "ts-node src/snapshot.ts",
+    "dev:airdropCSV": "ts-node src/airdropCSV.ts"
   },
   "keywords": [],
   "author": "",

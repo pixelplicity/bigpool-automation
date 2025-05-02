@@ -20,3 +20,5 @@ yarn-error.log*
 
 # Dist
 /dist
+/snapshots
+/airdrop

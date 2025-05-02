@@ -102,21 +102,24 @@ async function main() {
                 transport: (0, viem_1.http)(RPC_URL)
             });
             console.log(`[${abstractClient.account.address}]: Starting claim and split`);
+            const balanceBefore = await getBigBalance(abstractClient.account.address);
             await claimRewards(abstractClient);
-            const balance = await getBigBalance(abstractClient.account.address);
-            const toTreasury = (balance * 45n) / 100n;
-            const toTeam = (balance * 5n) / 100n;
-            const toHolders = balance - toTreasury - toTeam;
-            console.log(`[${abstractClient.account.address}]: Splitting ${(0, viem_1.formatUnits)(balance, 18)} BIG: treasury=${(0, viem_1.formatUnits)(toTreasury, 18)}, fee=${(0, viem_1.formatUnits)(toTeam, 18)}, reinvest=${(0, viem_1.formatUnits)(toHolders, 18)}`);
+            const balanceAfter = await getBigBalance(abstractClient.account.address);
+            const balanceToSplit = balanceAfter - balanceBefore;
+            const toTreasury = (balanceToSplit * 45n) / 100n;
+            const toFee = (balanceToSplit * 5n) / 100n;
+            const toReinvest = balanceToSplit - toTreasury - toFee;
+            console.log(`[${abstractClient.account.address}]: Splitting ${(0, viem_1.formatUnits)(balanceToSplit, 18)} BIG: treasury=${(0, viem_1.formatUnits)(toTreasury, 18)}, fee=${(0, viem_1.formatUnits)(toFee, 18)}, reinvest=${(0, viem_1.formatUnits)(toReinvest, 18)}`);
             const recipientAddresses = [
                 TREASURY_ADDRESS,
                 FEE_ADDRESS,
                 REINVEST_ADDRESS
             ];
-            const recipientAmounts = [toTreasury, toTeam, toHolders];
+            const recipientAmounts = [toTreasury, toFee, toReinvest];
             const airdropHash = await airdrop(abstractClient, recipientAddresses, recipientAmounts);
             console.log(`[${abstractClient.account.address}]: Completed with hash: ${airdropHash}`);
         }
+        process.exit(0);
     }
     catch (err) {
         console.error('Error in main execution:', err);
@@ -124,4 +127,5 @@ async function main() {
 }
 main().catch(err => {
     console.error('Unhandled error:', err);
+    process.exit(1);
 });
