@@ -26,7 +26,7 @@ Build the scripts by running
 
 ### Automatic claim and split
 
-This script claims BIG rewards from each wallet's BIGCOING mine and then splits just the claimed amount between the treasury, reinvest, and fee wallets.
+This script claims BIG rewards from each wallet's BIGCOIN mine and then splits just the claimed amount between the treasury, reinvest, and fee wallets.
 
 `pnpm start`
 
