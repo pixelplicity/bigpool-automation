@@ -132,7 +132,11 @@ async function main() {
         `[${abstractClient.account.address}]: Starting claim and split`
       );
       const balanceBefore = await getBigBalance(abstractClient.account.address);
-      await claimRewards(abstractClient);
+      await claimRewards(abstractClient).catch(_ => {
+        console.log(
+          `[${abstractClient.account.address}]: Error claiming reward`
+        );
+      });
       const balanceAfter = await getBigBalance(abstractClient.account.address);
 
       const balanceToSplit = balanceAfter - balanceBefore;
