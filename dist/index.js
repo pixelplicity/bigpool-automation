@@ -23,6 +23,7 @@ const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS;
 const FEE_ADDRESS = process.env.FEE_ADDRESS;
 const REINVEST_ADDRESS = process.env.REINVEST_ADDRESS;
 const WALLET_PKS = process.env.WALLET_PKS?.split(',');
+const DELAY_BETWEEN_WALLETS = parseInt(process.env.DELAY_BETWEEN_WALLETS || '5000');
 // Client Setup
 const baseClient = (0, viem_1.createClient)({
     transport: (0, viem_1.http)(RPC_URL),
@@ -35,36 +36,48 @@ const publicClient = baseClient.extend(viem_1.publicActions);
  */
 const airdrop = async (abstractClient, recipientAddresses, recipientAmounts) => {
     const totalAmount = recipientAmounts.reduce((acc, amt) => acc + amt, 0n);
-    const hash = await abstractClient.sendTransactionBatch({
-        calls: [
-            {
-                to: BIG_CONTRACT_ADDRESS,
-                args: [AIRDROP_CONTRACT_ADDRESS, totalAmount],
-                data: (0, viem_1.encodeFunctionData)({
-                    abi: Erc20ApproveAbi_1.Erc20approveAbi,
-                    functionName: 'approve',
-                    args: [AIRDROP_CONTRACT_ADDRESS, totalAmount]
-                })
-            },
-            {
-                to: AIRDROP_CONTRACT_ADDRESS,
-                data: (0, viem_1.encodeFunctionData)({
-                    abi: AirdropAbi_1.AirdropAbi,
-                    functionName: 'airdropERC20',
-                    args: [
-                        BIG_CONTRACT_ADDRESS,
-                        recipientAddresses,
-                        recipientAmounts,
-                        totalAmount
-                    ]
-                })
-            }
-        ]
-    });
-    await publicClient.waitForTransactionReceipt({
-        hash: hash
-    });
-    return hash;
+    try {
+        const hash = await abstractClient.sendTransactionBatch({
+            calls: [
+                {
+                    to: BIG_CONTRACT_ADDRESS,
+                    data: (0, viem_1.encodeFunctionData)({
+                        abi: Erc20ApproveAbi_1.Erc20approveAbi,
+                        functionName: 'approve',
+                        args: [AIRDROP_CONTRACT_ADDRESS, totalAmount]
+                    })
+                },
+                {
+                    to: AIRDROP_CONTRACT_ADDRESS,
+                    data: (0, viem_1.encodeFunctionData)({
+                        abi: AirdropAbi_1.AirdropAbi,
+                        functionName: 'airdropERC20',
+                        args: [
+                            BIG_CONTRACT_ADDRESS,
+                            recipientAddresses,
+                            recipientAmounts,
+                            totalAmount
+                        ]
+                    })
+                }
+            ]
+        });
+        await publicClient.waitForTransactionReceipt({
+            hash: hash,
+            timeout: 60_000 // 60 second timeout
+        });
+        return hash;
+    }
+    catch (error) {
+        // Log more details about the error for debugging
+        console.error('Airdrop error details:', {
+            message: error?.message,
+            details: error?.details,
+            cause: error?.cause?.message,
+            shortMessage: error?.shortMessage
+        });
+        throw error;
+    }
 };
 /**
  * Get the balance of BIG
@@ -74,6 +87,15 @@ const getBigBalance = async (address) => {
         address: BIG_CONTRACT_ADDRESS,
         abi: viem_1.erc20Abi,
         functionName: 'balanceOf',
+        args: [address]
+    });
+    return balance;
+};
+const getPendingBalance = async (address) => {
+    const balance = await publicClient.readContract({
+        address: BIGCOIN_CONTRACT_ADDRESS,
+        abi: BigCoinAbi_1.BigCoinAbi,
+        functionName: 'pendingRewards',
         args: [address]
     });
     return balance;
@@ -92,32 +114,87 @@ const claimRewards = async (abstractClient) => {
     });
     return hash;
 };
+/**
+ * Delay helper with exponential backoff
+ */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Retry helper with exponential backoff
+ */
+async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
+    let lastError;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await fn();
+        }
+        catch (error) {
+            lastError = error;
+            // Check if it's a rate limit error (429)
+            const is429Error = error?.message?.includes('429') ||
+                error?.cause?.message?.includes('429') ||
+                error?.details?.includes('429');
+            if (is429Error && i < maxRetries - 1) {
+                const delayTime = initialDelay * Math.pow(2, i);
+                console.log(`Rate limited (429). Retrying in ${delayTime}ms... (attempt ${i + 1}/${maxRetries})`);
+                await delay(delayTime);
+            }
+            else {
+                throw error;
+            }
+        }
+    }
+    throw lastError;
+}
 async function main() {
     try {
-        for (const pk of WALLET_PKS) {
+        for (let index = 0; index < WALLET_PKS.length; index++) {
+            const pk = WALLET_PKS[index];
             const signer = (0, accounts_1.privateKeyToAccount)(pk);
             const abstractClient = await (0, agw_client_1.createAbstractClient)({
                 signer,
                 chain: chains_1.abstract,
                 transport: (0, viem_1.http)(RPC_URL)
             });
-            console.log(`[${abstractClient.account.address}]: Starting claim and split`);
+            console.log(`[${abstractClient.account.address}]: Starting claim and split (${index + 1}/${WALLET_PKS.length})`);
+            const pendingBalance = await getPendingBalance(abstractClient.account.address);
+            console.log(`[${abstractClient.account.address}]: Pending balance: ${(0, viem_1.formatUnits)(pendingBalance, 18)}`);
+            if (pendingBalance < 10000000000000000000n) {
+                console.log(`[${abstractClient.account.address}]: Pending balance is less than 10 BIG, skipping...`);
+                continue;
+            }
             const balanceBefore = await getBigBalance(abstractClient.account.address);
-            await claimRewards(abstractClient);
+            await claimRewards(abstractClient).catch(e => {
+                console.log(`[${abstractClient.account.address}]: Error claiming reward`, e);
+            });
             const balanceAfter = await getBigBalance(abstractClient.account.address);
             const balanceToSplit = balanceAfter - balanceBefore;
             const toTreasury = (balanceToSplit * 45n) / 100n;
             const toFee = (balanceToSplit * 5n) / 100n;
             const toReinvest = balanceToSplit - toTreasury - toFee;
             console.log(`[${abstractClient.account.address}]: Splitting ${(0, viem_1.formatUnits)(balanceToSplit, 18)} BIG: treasury=${(0, viem_1.formatUnits)(toTreasury, 18)}, fee=${(0, viem_1.formatUnits)(toFee, 18)}, reinvest=${(0, viem_1.formatUnits)(toReinvest, 18)}`);
+            // Skip if no balance to split
+            if (balanceToSplit === 0n) {
+                console.log(`[${abstractClient.account.address}]: No balance to split, skipping...`);
+                continue;
+            }
             const recipientAddresses = [
                 TREASURY_ADDRESS,
                 FEE_ADDRESS,
                 REINVEST_ADDRESS
             ];
             const recipientAmounts = [toTreasury, toFee, toReinvest];
-            const airdropHash = await airdrop(abstractClient, recipientAddresses, recipientAmounts);
-            console.log(`[${abstractClient.account.address}]: Completed with hash: ${airdropHash}`);
+            try {
+                const airdropHash = await retryWithBackoff(async () => airdrop(abstractClient, recipientAddresses, recipientAmounts), 3, 2000);
+                console.log(`[${abstractClient.account.address}]: Completed with hash: ${airdropHash}`);
+            }
+            catch (error) {
+                console.error(`[${abstractClient.account.address}]: Failed after retries:`, error);
+            }
+            // Add delay between wallets to prevent rate limiting
+            if (index < WALLET_PKS.length - 1) {
+                console.log(`Waiting ${DELAY_BETWEEN_WALLETS / 1000} seconds before processing next wallet...`);
+                await delay(DELAY_BETWEEN_WALLETS);
+            }
         }
         process.exit(0);
     }

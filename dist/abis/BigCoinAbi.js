@@ -3,18 +3,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BigCoinAbi = void 0;
 exports.BigCoinAbi = [
     { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
+    {
+        inputs: [{ internalType: 'address', name: 'target', type: 'address' }],
+        name: 'AddressEmptyCode',
+        type: 'error'
+    },
     { inputs: [], name: 'AlreadyAtMaxFacility', type: 'error' },
     { inputs: [], name: 'AlreadyPurchasedInitialFactory', type: 'error' },
     { inputs: [], name: 'CantBuyNewFacilityYet', type: 'error' },
     { inputs: [], name: 'CantModifyStarterFacility', type: 'error' },
     { inputs: [], name: 'CantModifyStarterMiner', type: 'error' },
+    {
+        inputs: [
+            { internalType: 'address', name: 'implementation', type: 'address' }
+        ],
+        name: 'ERC1967InvalidImplementation',
+        type: 'error'
+    },
+    { inputs: [], name: 'ERC1967NonPayable', type: 'error' },
     { inputs: [], name: 'FacilityDimensionsInvalid', type: 'error' },
     { inputs: [], name: 'FacilityInadequatePowerOutput', type: 'error' },
+    { inputs: [], name: 'FailedCall', type: 'error' },
     { inputs: [], name: 'GreatDepression', type: 'error' },
     { inputs: [], name: 'IncorrectValue', type: 'error' },
     { inputs: [], name: 'IndexOutOfBounds', type: 'error' },
     { inputs: [], name: 'InvalidFacilityIndex', type: 'error' },
     { inputs: [], name: 'InvalidFee', type: 'error' },
+    { inputs: [], name: 'InvalidInitialization', type: 'error' },
     { inputs: [], name: 'InvalidMinerCoordinates', type: 'error' },
     { inputs: [], name: 'InvalidMinerIndex', type: 'error' },
     { inputs: [], name: 'InvalidPowerOutput', type: 'error' },
@@ -26,6 +41,7 @@ exports.BigCoinAbi = [
     { inputs: [], name: 'NoRewardsPending', type: 'error' },
     { inputs: [], name: 'NonExistentFacility', type: 'error' },
     { inputs: [], name: 'NonExistentMiner', type: 'error' },
+    { inputs: [], name: 'NotInitializing', type: 'error' },
     {
         inputs: [{ internalType: 'address', name: 'owner', type: 'address' }],
         name: 'OwnableInvalidOwner',
@@ -39,6 +55,12 @@ exports.BigCoinAbi = [
     { inputs: [], name: 'PlayerDoesNotOwnMiner', type: 'error' },
     { inputs: [], name: 'StarterMinerAlreadyAcquired', type: 'error' },
     { inputs: [], name: 'TooPoor', type: 'error' },
+    { inputs: [], name: 'UUPSUnauthorizedCallContext', type: 'error' },
+    {
+        inputs: [{ internalType: 'bytes32', name: 'slot', type: 'bytes32' }],
+        name: 'UUPSUnsupportedProxiableUUID',
+        type: 'error'
+    },
     { inputs: [], name: 'WithdrawFailed', type: 'error' },
     {
         anonymous: false,
@@ -111,6 +133,20 @@ exports.BigCoinAbi = [
         name: 'InitialFacilityPurchased',
         type: 'event'
     },
+    {
+        anonymous: false,
+        inputs: [
+            {
+                indexed: false,
+                internalType: 'uint64',
+                name: 'version',
+                type: 'uint64'
+            }
+        ],
+        name: 'Initialized',
+        type: 'event'
+    },
+    { anonymous: false, inputs: [], name: 'Migration', type: 'event' },
     {
         anonymous: false,
         inputs: [
@@ -340,6 +376,19 @@ exports.BigCoinAbi = [
         anonymous: false,
         inputs: [
             {
+                indexed: false,
+                internalType: 'address',
+                name: 'player',
+                type: 'address'
+            }
+        ],
+        name: 'PlayerHasMigrated',
+        type: 'event'
+    },
+    {
+        anonymous: false,
+        inputs: [
+            {
                 indexed: true,
                 internalType: 'address',
                 name: 'player',
@@ -406,6 +455,19 @@ exports.BigCoinAbi = [
         type: 'event'
     },
     {
+        anonymous: false,
+        inputs: [
+            {
+                indexed: true,
+                internalType: 'address',
+                name: 'implementation',
+                type: 'address'
+            }
+        ],
+        name: 'Upgraded',
+        type: 'event'
+    },
+    {
         inputs: [],
         name: 'HALVING_INTERVAL',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
@@ -415,6 +477,13 @@ exports.BigCoinAbi = [
     {
         inputs: [],
         name: 'INITIAL_BIGCOIN_PER_BLOCK',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'MAX_SUPPLY',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function'
@@ -437,6 +506,13 @@ exports.BigCoinAbi = [
         inputs: [],
         name: 'STARTER_MINER_INDEX',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'UPGRADE_INTERFACE_VERSION',
+        outputs: [{ internalType: 'string', name: '', type: 'string' }],
         stateMutability: 'view',
         type: 'function'
     },
@@ -479,6 +555,76 @@ exports.BigCoinAbi = [
             { internalType: 'uint256', name: 'price', type: 'uint256' }
         ],
         name: 'addSecondaryMarketForMiner',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function'
+    },
+    {
+        inputs: [
+            {
+                components: [
+                    { internalType: 'address', name: 'player', type: 'address' },
+                    { internalType: 'uint256', name: 'hashrate', type: 'uint256' },
+                    { internalType: 'uint256', name: 'pendingRewards', type: 'uint256' },
+                    {
+                        components: [
+                            {
+                                internalType: 'uint256',
+                                name: 'facilityIndex',
+                                type: 'uint256'
+                            },
+                            { internalType: 'uint256', name: 'maxMiners', type: 'uint256' },
+                            { internalType: 'uint256', name: 'currMiners', type: 'uint256' },
+                            {
+                                internalType: 'uint256',
+                                name: 'totalPowerOutput',
+                                type: 'uint256'
+                            },
+                            {
+                                internalType: 'uint256',
+                                name: 'currPowerOutput',
+                                type: 'uint256'
+                            },
+                            { internalType: 'uint256', name: 'x', type: 'uint256' },
+                            { internalType: 'uint256', name: 'y', type: 'uint256' }
+                        ],
+                        internalType: 'struct Facility',
+                        name: 'facility',
+                        type: 'tuple'
+                    },
+                    { internalType: 'bool', name: 'acquiredStarterMiner', type: 'bool' },
+                    {
+                        internalType: 'uint256',
+                        name: 'lastFacilityUpgradeTimestamp',
+                        type: 'uint256'
+                    },
+                    { internalType: 'address', name: 'referrals', type: 'address' },
+                    {
+                        components: [
+                            { internalType: 'uint256', name: 'minerIndex', type: 'uint256' },
+                            { internalType: 'uint256', name: 'id', type: 'uint256' },
+                            { internalType: 'uint256', name: 'x', type: 'uint256' },
+                            { internalType: 'uint256', name: 'y', type: 'uint256' },
+                            { internalType: 'uint256', name: 'hashrate', type: 'uint256' },
+                            {
+                                internalType: 'uint256',
+                                name: 'powerConsumption',
+                                type: 'uint256'
+                            },
+                            { internalType: 'uint256', name: 'cost', type: 'uint256' },
+                            { internalType: 'bool', name: 'inProduction', type: 'bool' }
+                        ],
+                        internalType: 'struct Miner[]',
+                        name: 'minersBatch',
+                        type: 'tuple[]'
+                    }
+                ],
+                internalType: 'struct MainV2.MigrationParams[]',
+                name: 'paramsList',
+                type: 'tuple[]'
+            }
+        ],
+        name: 'batchMigrateUsers',
         outputs: [],
         stateMutability: 'nonpayable',
         type: 'function'
@@ -648,14 +794,42 @@ exports.BigCoinAbi = [
     },
     {
         inputs: [],
+        name: 'globalMigrationDone',
+        outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'halvingOvershoot',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
         name: 'initialFacilityPrice',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function'
     },
     {
+        inputs: [{ internalType: 'address', name: '_oldMain', type: 'address' }],
+        name: 'initialize',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function'
+    },
+    {
         inputs: [{ internalType: 'address', name: '', type: 'address' }],
         name: 'initializedStarterFacility',
+        outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+        name: 'isUserMigrationRequired',
         outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
         stateMutability: 'view',
         type: 'function'
@@ -670,6 +844,75 @@ exports.BigCoinAbi = [
     {
         inputs: [],
         name: 'lastRewardBlock',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'migrateGlobalState',
+        outputs: [],
+        stateMutability: 'payable',
+        type: 'function'
+    },
+    {
+        inputs: [
+            { internalType: 'address', name: 'player', type: 'address' },
+            { internalType: 'uint256', name: '_hashrate', type: 'uint256' },
+            { internalType: 'uint256', name: '_pendingRewards', type: 'uint256' },
+            {
+                components: [
+                    { internalType: 'uint256', name: 'facilityIndex', type: 'uint256' },
+                    { internalType: 'uint256', name: 'maxMiners', type: 'uint256' },
+                    { internalType: 'uint256', name: 'currMiners', type: 'uint256' },
+                    {
+                        internalType: 'uint256',
+                        name: 'totalPowerOutput',
+                        type: 'uint256'
+                    },
+                    { internalType: 'uint256', name: 'currPowerOutput', type: 'uint256' },
+                    { internalType: 'uint256', name: 'x', type: 'uint256' },
+                    { internalType: 'uint256', name: 'y', type: 'uint256' }
+                ],
+                internalType: 'struct Facility',
+                name: '_facility',
+                type: 'tuple'
+            },
+            { internalType: 'bool', name: '_acquiredStarterMiner', type: 'bool' },
+            {
+                internalType: 'uint256',
+                name: '_lastFacilityUpgradeTimestamp',
+                type: 'uint256'
+            },
+            { internalType: 'address', name: '_referrals', type: 'address' },
+            {
+                components: [
+                    { internalType: 'uint256', name: 'minerIndex', type: 'uint256' },
+                    { internalType: 'uint256', name: 'id', type: 'uint256' },
+                    { internalType: 'uint256', name: 'x', type: 'uint256' },
+                    { internalType: 'uint256', name: 'y', type: 'uint256' },
+                    { internalType: 'uint256', name: 'hashrate', type: 'uint256' },
+                    {
+                        internalType: 'uint256',
+                        name: 'powerConsumption',
+                        type: 'uint256'
+                    },
+                    { internalType: 'uint256', name: 'cost', type: 'uint256' },
+                    { internalType: 'bool', name: 'inProduction', type: 'bool' }
+                ],
+                internalType: 'struct Miner[]',
+                name: '_minersBatch',
+                type: 'tuple[]'
+            }
+        ],
+        name: 'migrateUserWithParams',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'migratedPlayerCount',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
         stateMutability: 'view',
         type: 'function'
@@ -701,6 +944,20 @@ exports.BigCoinAbi = [
         inputs: [],
         name: 'miningHasStarted',
         outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'oldCumulativeBigcoinPerHash',
+        outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'oldMain',
+        outputs: [{ internalType: 'address', name: '', type: 'address' }],
         stateMutability: 'view',
         type: 'function'
     },
@@ -749,6 +1006,13 @@ exports.BigCoinAbi = [
     },
     {
         inputs: [{ internalType: 'address', name: '', type: 'address' }],
+        name: 'playerHasMigrated',
+        outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [{ internalType: 'address', name: '', type: 'address' }],
         name: 'playerHashrate',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
         stateMutability: 'view',
@@ -792,6 +1056,13 @@ exports.BigCoinAbi = [
         inputs: [{ internalType: 'address', name: '', type: 'address' }],
         name: 'playerPendingRewards',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [],
+        name: 'proxiableUUID',
+        outputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
         stateMutability: 'view',
         type: 'function'
     },
@@ -944,6 +1215,16 @@ exports.BigCoinAbi = [
         name: 'uniqueMinerCount',
         outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
         stateMutability: 'view',
+        type: 'function'
+    },
+    {
+        inputs: [
+            { internalType: 'address', name: 'newImplementation', type: 'address' },
+            { internalType: 'bytes', name: 'data', type: 'bytes' }
+        ],
+        name: 'upgradeToAndCall',
+        outputs: [],
+        stateMutability: 'payable',
         type: 'function'
     },
     {
