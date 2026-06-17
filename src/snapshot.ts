@@ -16,6 +16,11 @@ dotenv.config();
 const RPC_URL = process.env.RPC_URL;
 const BIGPOOL_CONTRACT_ADDRESS = process.env
   .BIGPOOL_CONTRACT_ADDRESS as `0x${string}`;
+const SNAPSHOT_BLOCK_NUMBER: bigint | undefined = 54000000n;
+const snapshotBlockParams =
+  SNAPSHOT_BLOCK_NUMBER !== undefined
+    ? { blockNumber: SNAPSHOT_BLOCK_NUMBER }
+    : {};
 
 // Client Setup
 const baseClient = createClient({
@@ -42,7 +47,8 @@ const getHolders = async () => {
         abi: BigpoolAbi,
         functionName: 'totalSupply'
       }
-    ]
+    ],
+    ...snapshotBlockParams
   });
 
   const chunkSize = 50;
@@ -64,7 +70,8 @@ const getHolders = async () => {
     }));
 
     const owners = await publicClient.multicall<{ result: `0x${string}` }[]>({
-      contracts: ownerCalls
+      contracts: ownerCalls,
+      ...snapshotBlockParams
     });
 
     owners.forEach((owner, index) => {

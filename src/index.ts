@@ -213,9 +213,9 @@ async function main() {
         )}`
       );
 
-      if (pendingBalance < 10000000000000000000n) {
+      if (pendingBalance < 1000000000000000000n) {
         console.log(
-          `[${abstractClient.account.address}]: Pending balance is less than 10 BIG, skipping...`
+          `[${abstractClient.account.address}]: Pending balance is less than 1 BIG, skipping...`
         );
         continue;
       }

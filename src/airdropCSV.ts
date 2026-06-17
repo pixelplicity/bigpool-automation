@@ -17,6 +17,11 @@ dotenv.config();
 const RPC_URL = process.env.RPC_URL;
 const BIG_CONTRACT_ADDRESS = process.env.BIG_CONTRACT_ADDRESS as `0x${string}`;
 const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS as `0x${string}`;
+const SNAPSHOT_BLOCK_NUMBER: bigint | undefined = 54000000n;
+const snapshotBlockParams =
+  SNAPSHOT_BLOCK_NUMBER !== undefined
+    ? { blockNumber: SNAPSHOT_BLOCK_NUMBER }
+    : {};
 
 // Client Setup
 const baseClient = createClient({
@@ -40,7 +45,8 @@ const getRewardsBalance = async () => {
     address: BIG_CONTRACT_ADDRESS,
     abi: erc20Abi,
     functionName: 'balanceOf',
-    args: [TREASURY_ADDRESS]
+    args: [TREASURY_ADDRESS],
+    ...snapshotBlockParams
   });
   return balance;
 };
